@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎰 THE RANDOMIZER 3000 🎰</title>
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hot-pink: #FF0080;
+    --electric-yellow: #FFE600;
+    --neon-green: #00FF41;
+    --cyan: #00E5FF;
+    --purple: #B400FF;
+    --orange: #FF6A00;
+    --bg: #0A0A1A;
+    --card-bg: #12122A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* SCANLINES OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* STARFIELD */
+  #stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--d, 2s) infinite alternate;
+  }
+  @keyframes twinkle {
+    from { opacity: 0.1; transform: scale(0.8); }
+    to   { opacity: 1;   transform: scale(1.2); }
+  }
+
+  /* MARQUEE BANNER */
+  .marquee-wrap {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 36px;
+    background: var(--hot-pink);
+    overflow: hidden;
+    z-index: 100;
+    border-bottom: 3px solid var(--electric-yellow);
+    display: flex;
+    align-items: center;
+  }
+  .marquee-inner {
+    display: flex;
+    animation: marquee 18s linear infinite;
+    white-space: nowrap;
+  }
+  .marquee-inner span {
+    font-family: 'Boogaloo', cursive;
+    font-size: 18px;
+    color: var(--electric-yellow);
+    letter-spacing: 2px;
+    padding: 0 30px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* LOGO */
+  .logo {
+    text-align: center;
+    padding: 54px 20px 10px;
+    position: relative;
+    z-index: 10;
+  }
+  .logo h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.4rem, 7vw, 5rem);
+    line-height: 1;
+    background: linear-gradient(90deg, var(--hot-pink), var(--electric-yellow), var(--neon-green), var(--cyan), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px var(--hot-pink));
+    animation: logoGlow 2s ease-in-out infinite alternate;
+  }
+  @keyframes logoGlow {
+    from { filter: drop-shadow(0 0 10px var(--hot-pink)); }
+    to   { filter: drop-shadow(0 0 30px var(--cyan)); }
+  }
+  .logo-sub {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.1rem;
+    color: var(--electric-yellow);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* SCREEN CONTAINER */
+  .screen {
+    position: relative;
+    z-index: 10;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px 20px 80px;
+    display: none;
+  }
+  .screen.active { display: block; }
+
+  /* === SETUP SCREEN === */
+  .setup-card {
+    background: var(--card-bg);
+    border: 3px solid var(--cyan);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 0 40px rgba(0,229,255,0.2), inset 0 0 40px rgba(0,229,255,0.03);
+    margin-top: 10px;
+  }
+  .section-label {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.2rem;
+    color: var(--electric-yellow);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* EMOJI PICKER */
+  .emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .emoji-btn {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: rgba(255,255,255,0.07);
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .emoji-btn:hover  { background: rgba(255,255,255,0.15); transform: scale(1.15); }
+  .emoji-btn.active { border-color: var(--electric-yellow); background: rgba(255,230,0,0.15); transform: scale(1.1); }
+
+  /* INPUT ROW */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .input-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(0,229,255,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-row input:focus { border-color: var(--cyan); }
+  .input-row input::placeholder { color: rgba(255,255,255,0.3); }
+
+  .btn-add {
+    background: var(--neon-green);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-add:hover { transform: scale(1.05); background: #00ff88; }
+  .btn-add:active { transform: scale(0.97); }
+
+  /* ITEMS LIST */
+  .items-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 50px;
+    margin-bottom: 24px;
+  }
+  .item-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(180,0,255,0.25), rgba(0,229,255,0.15));
+    border: 2px solid var(--purple);
+    border-radius: 30px;
+    padding: 6px 14px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.95rem;
+    animation: tagPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes tagPop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .item-tag .tag-emoji { font-size: 1.1em; }
+  .item-tag .remove-btn {
+    background: none; border: none; color: rgba(255,255,255,0.5);
+    cursor: pointer; font-size: 1rem; line-height: 1;
+    margin-left: 2px; padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .item-tag .remove-btn:hover { color: var(--hot-pink); }
+
+  .empty-hint {
+    color: rgba(255,255,255,0.25);
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 12px 0;
+  }
+
+  /* START BUTTON */
+  .btn-start {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--hot-pink), var(--orange));
+    border: none;
+    border-radius: 16px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.6rem;
+    color: white;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 30px rgba(255,0,128,0.5);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-start::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+  }
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(255,0,128,0.7); }
+  .btn-start:active { transform: translateY(1px); }
+  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* === GAME SCREEN === */
+  #gameScreen { padding-bottom: 120px; }
+
+  .game-title {
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: var(--electric-yellow);
+    margin-bottom: 24px;
+    letter-spacing: 2px;
+    animation: pulse 1s infinite alternate;
+  }
+  @keyframes pulse {
+    from { opacity: 0.7; }
+    to   { opacity: 1; }
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+
+  .option-box {
+    background: var(--card-bg);
+    border: 3px solid var(--purple);
+    border-radius: 16px;
+    padding: 20px 14px;
+    text-align: center;
+    cursor: default;
+    transition: transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .option-box .opt-emoji { font-size: 2rem; display: block; margin-bottom: 6px; }
+  .option-box .opt-text  { color: white; font-weight: 900; font-size: 1rem; word-break: break-word; }
+
+  /* FLASHING ANIMATION */
+  .option-box.flash-active {
+    animation: boxFlash 0.18s ease-in-out;
+    border-color: var(--electric-yellow);
+    box-shadow: 0 0 25px var(--electric-yellow), inset 0 0 15px rgba(255,230,0,0.2);
+    transform: scale(1.06);
+  }
+  @keyframes boxFlash {
+    0%   { background: var(--card-bg); }
+    50%  { background: rgba(255,230,0,0.25); }
+    100% { background: var(--card-bg); }
+  }
+  .option-box.eliminated {
+    opacity: 0.2;
+    border-color: rgba(255,255,255,0.1);
+    transform: scale(0.92);
+    transition: all 0.4s;
+  }
+  .option-box.winner {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 40px var(--neon-green);
+  }
+
+  /* WINNER REVEAL */
+  #winnerOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  #winnerOverlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .winner-card {
+    background: linear-gradient(145deg, #1A0030, #00102A);
+    border: 4px solid var(--electric-yellow);
+    border-radius: 28px;
+    padding: 40px 50px;
+    text-align: center;
+    box-shadow: 0 0 80px rgba(255,230,0,0.4), 0 0 160px rgba(255,0,128,0.2);
+    animation: winnerFloat 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transform: scale(0.3) translateY(100px);
+    opacity: 0;
+    max-width: 90vw;
+  }
+  @keyframes winnerFloat {
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .winner-label {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1rem;
+    color: var(--hot-pink);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .winner-emoji { font-size: 4rem; display: block; margin-bottom: 10px; animation: bounce 0.5s 0.6s ease infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+  .winner-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    background: linear-gradient(90deg, var(--electric-yellow), var(--neon-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 499;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 10px; height: 10px;
+    top: -20px;
+    animation: confettiFall linear forwards;
+    border-radius: 2px;
+  }
+  @keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* BOTTOM BUTTONS */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,26,0.95);
+    border-top: 3px solid var(--hot-pink);
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    z-index: 600;
+    backdrop-filter: blur(10px);
+  }
+  .bottom-bar.hidden { display: none; }
+
+  .btn-again {
+    flex: 1; max-width: 200px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--neon-green), var(--cyan));
+    border: none;
+    border-radius: 14px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #000;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(0,255,65,0.3);
+  }
+  .btn-again:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,255,65,0.5); }
+
+  .btn-over {
+    flex: 1; max-width: 200px;
+    padding: 14px;
+    background: transparent;
+    border: 3px solid var(--hot-pink);
+    border-radius: 14px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: var(--hot-pink);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-over:hover { background: rgba(255,0,128,0.15); transform: translateY(-2px); }
+
+  /* TICKER COUNTDOWN */
+  .countdown-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .countdown-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--hot-pink), var(--electric-yellow), var(--neon-green));
+    border-radius: 4px;
+    width: 100%;
+    transition: width linear;
+  }
+
+  /* SHARE ROW */
+  .share-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .btn-share {
+    background: rgba(255,255,255,0.07);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .btn-share:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.07); }
+
+  .share-toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--neon-green);
+    color: #000;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    padding: 10px 22px;
+    border-radius: 30px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    z-index: 700;
+    white-space: nowrap;
+  }
+  .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    .options-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+    .winner-card { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-inner" id="marqueeInner"></div>
+</div>
+
+<!-- LOGO -->
+<div class="logo">
+  <h1>THE RANDOMIZER 3000</h1>
+  <div class="logo-sub">✨ Let Fate Decide! ✨</div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div class="screen active" id="setupScreen">
+  <div class="setup-card">
+    <div class="section-label">🎨 Pick Your Emoji</div>
+    <div class="emoji-picker" id="emojiPicker"></div>
+
+    <div class="section-label">➕ Add an Option</div>
+    <div class="input-row">
+      <input type="text" id="itemInput" placeholder="Type something..." maxlength="30" />
+      <button class="btn-add" id="addBtn">+ ADD</button>
+    </div>
+
+    <div class="section-label">📋 Your Options</div>
+    <ul class="items-list" id="itemsList">
+      <li class="empty-hint" id="emptyHint">Add at least 2 options above to play!</li>
+    </ul>
+
+    <div class="share-row">
+      <button class="btn-share" id="shareSetupBtn">🔗 Share This List</button>
+    </div>
+    <br>
+    <button class="btn-start" id="startBtn" disabled>🎰 SPIN THE WHEEL! 🎰</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-title" id="gameTitle">🎲 SPINNING... 🎲</div>
+  <div class="countdown-bar"><div class="countdown-fill" id="countdownFill"></div></div>
+  <div class="options-grid" id="optionsGrid"></div>
+</div>
+
+<!-- WINNER OVERLAY -->
+<div id="winnerOverlay">
+  <div class="confetti-container" id="confettiContainer"></div>
+  <div class="winner-card" id="winnerCard">
+    <div class="winner-label">🏆 And the winner is... 🏆</div>
+    <span class="winner-emoji" id="winnerEmoji">⭐</span>
+    <div class="winner-name" id="winnerName">Item Name</div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar hidden" id="bottomBar">
+  <button class="btn-again" id="goAgainBtn">🔄 Go Again!</button>
+  <button class="btn-over" id="startOverBtn">✖ Start Over</button>
+</div>
+
+<!-- SHARE TOAST -->
+<div class="share-toast" id="shareToast">🔗 Link Copied!</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  DATA
+// ──────────────────────────────────────────────
+const EMOJIS = ['⭐','🎯','🔥','🎲','💎','🚀','🦄','🍕','🎸','🌈','👑','🐉','🎉','🍀','⚡','🎮','🎪','🤖','🦊','🌟'];
+
+const MARQUEE_TEXT = '★ THE RANDOMIZER 3000 ★ SPIN THE WHEEL ★ WHO WILL WIN? ★ LET FATE DECIDE ★ ';
+
+let items = [];        // [{text, emoji}]
+let selectedEmoji = EMOJIS[0];
+let animationRunning = false;
+
+// ──────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────
+function init() {
+  buildStars();
+  buildMarquee();
+  buildEmojiPicker();
+  loadFromURL();
+  bindEvents();
+}
+
+function buildStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1+Math.random()*3}s;animation-delay:${Math.random()*3}s;opacity:${0.2+Math.random()*0.8}`;
+    container.appendChild(s);
+  }
+}
+
+function buildMarquee() {
+  const inner = document.getElementById('marqueeInner');
+  const txt = MARQUEE_TEXT.repeat(4);
+  inner.innerHTML = `<span>${txt}</span><span>${txt}</span>`;
+}
+
+function buildEmojiPicker() {
+  const picker = document.getElementById('emojiPicker');
+  EMOJIS.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn' + (e === selectedEmoji ? ' active' : '');
+    btn.textContent = e;
+    btn.title = e;
+    btn.addEventListener('click', () => {
+      selectedEmoji = e;
+      picker.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('active', b.textContent === e));
+    });
+    picker.appendChild(btn);
+  });
+}
+
+// ──────────────────────────────────────────────
+//  URL PERSISTENCE
+// ──────────────────────────────────────────────
+function saveToURL() {
+  const encoded = btoa(JSON.stringify(items));
+  const url = new URL(window.location.href);
+  url.searchParams.set('items', encoded);
+  window.history.replaceState({}, '', url.toString());
+}
+
+function loadFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const data = params.get('items');
+    if (data) {
+      items = JSON.parse(atob(data));
+      renderItemsList();
+      updateStartBtn();
+    }
+  } catch(e) {}
+}
+
+function getShareURL() {
+  const encoded = btoa(JSON.stringify(items));
+  const url = new URL(window.location.href);
+  url.searchParams.set('items', encoded);
+  return url.toString();
+}
+
+// ──────────────────────────────────────────────
+//  SETUP SCREEN LOGIC
+// ──────────────────────────────────────────────
+function bindEvents() {
+  document.getElementById('addBtn').addEventListener('click', addItem);
+  document.getElementById('itemInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addItem();
+  });
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('goAgainBtn').addEventListener('click', goAgain);
+  document.getElementById('startOverBtn').addEventListener('click', startOver);
+  document.getElementById('shareSetupBtn').addEventListener('click', copyShareLink);
+}
+
+function addItem() {
+  const input = document.getElementById('itemInput');
+  const text = input.value.trim();
+  if (!text) return;
+  items.push({ text, emoji: selectedEmoji });
+  input.value = '';
+  renderItemsList();
+  updateStartBtn();
+  saveToURL();
+}
+
+function removeItem(index) {
+  items.splice(index, 1);
+  renderItemsList();
+  updateStartBtn();
+  saveToURL();
+}
+
+function renderItemsList() {
+  const list = document.getElementById('itemsList');
+  const hint = document.getElementById('emptyHint');
+  list.innerHTML = '';
+
+  if (items.length === 0) {
+    list.appendChild(hint || (() => {
+      const li = document.createElement('li');
+      li.className = 'empty-hint';
+      li.id = 'emptyHint';
+      li.textContent = 'Add at least 2 options above to play!';
+      return li;
+    })());
+    return;
+  }
+
+  items.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.className = 'item-tag';
+    li.innerHTML = `<span class="tag-emoji">${item.emoji}</span><span>${escapeHTML(item.text)}</span><button class="remove-btn" title="Remove">✕</button>`;
+    li.querySelector('.remove-btn').addEventListener('click', () => removeItem(i));
+    list.appendChild(li);
+  });
+}
+
+function updateStartBtn() {
+  document.getElementById('startBtn').disabled = items.length < 2;
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyShareLink() {
+  const url = getShareURL();
+  navigator.clipboard.writeText(url).then(() => showToast('🔗 Link Copied!')).catch(() => {
+    prompt('Copy this link:', url);
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('shareToast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ──────────────────────────────────────────────
+//  GAME LOGIC
+// ──────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function buildOptionsGrid() {
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  items.forEach((item, i) => {
+    const box = document.createElement('div');
+    box.className = 'option-box';
+    box.dataset.index = i;
+    box.innerHTML = `<span class="opt-emoji">${item.emoji}</span><span class="opt-text">${escapeHTML(item.text)}</span>`;
+    grid.appendChild(box);
+  });
+}
+
+function startGame() {
+  if (items.length < 2 || animationRunning) return;
+  animationRunning = true;
+  showScreen('gameScreen');
+  document.getElementById('bottomBar').classList.add('hidden');
+  document.getElementById('gameTitle').textContent = '🎲 SPINNING... 🎲';
+  buildOptionsGrid();
+  runAnimation();
+}
+
+function runAnimation() {
+  const boxes = Array.from(document.querySelectorAll('.option-box'));
+  boxes.forEach(b => b.classList.remove('flash-active','eliminated','winner'));
+
+  const duration = 3000;
+  const start = performance.now();
+  const winnerIndex = Math.floor(Math.random() * items.length);
+
+  // Update countdown bar
+  const fill = document.getElementById('countdownFill');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  setTimeout(() => {
+    fill.style.transition = `width ${duration}ms linear`;
+    fill.style.width = '0%';
+  }, 30);
+
+  // Flash interval - starts fast, slows down
+  let flashInterval;
+  let currentIndex = 0;
+  let lastBox = null;
+
+  function getDelay(elapsed) {
+    const progress = elapsed / duration;
+    // Start at 80ms, slow to 300ms near end
+    return 80 + progress * progress * 220;
+  }
+
+  function flashNext(elapsed) {
+    if (lastBox) lastBox.classList.remove('flash-active');
+
+    // Pick random box (but avoid repeating same box too much)
+    let idx;
+    do { idx = Math.floor(Math.random() * boxes.length); }
+    while (idx === currentIndex && boxes.length > 1);
+    currentIndex = idx;
+
+    const box = boxes[idx];
+    box.classList.add('flash-active');
+    lastBox = box;
+
+    const delay = getDelay(elapsed);
+    const remaining = duration - (performance.now() - start);
+
+    if (remaining > delay + 50) {
+      setTimeout(() => flashNext(performance.now() - start), delay);
+    } else {
+      // Final reveal
+      setTimeout(() => revealWinner(boxes, winnerIndex), remaining);
+    }
+  }
+
+  flashNext(0);
+}
+
+function revealWinner(boxes, winnerIndex) {
+  // Remove all flashing
+  boxes.forEach(b => b.classList.remove('flash-active'));
+
+  // Eliminate non-winners quickly
+  boxes.forEach((b, i) => {
+    if (i !== winnerIndex) {
+      setTimeout(() => b.classList.add('eliminated'), Math.random() * 400);
+    }
+  });
+
+  // Highlight winner
+  setTimeout(() => {
+    boxes[winnerIndex].classList.add('winner');
+    document.getElementById('gameTitle').textContent = '🏆 WE HAVE A WINNER! 🏆';
+  }, 500);
+
+  // Show overlay
+  setTimeout(() => showWinner(winnerIndex), 900);
+}
+
+function showWinner(index) {
+  const item = items[index];
+  document.getElementById('winnerEmoji').textContent = item.emoji;
+  document.getElementById('winnerName').textContent = item.text;
+
+  const overlay = document.getElementById('winnerOverlay');
+  overlay.classList.add('show');
+
+  // Reset & animate card
+  const card = document.getElementById('winnerCard');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'winnerFloat 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+
+  // Confetti!
+  spawnConfetti();
+
+  // Show bottom bar
+  setTimeout(() => {
+    document.getElementById('bottomBar').classList.remove('hidden');
+    animationRunning = false;
+  }, 600);
+}
+
+function spawnConfetti() {
+  const container = document.getElementById('confettiContainer');
+  container.innerHTML = '';
+  const colors = ['#FF0080','#FFE600','#00FF41','#00E5FF','#B400FF','#FF6A00','#ffffff'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const left = Math.random() * 100;
+    const delay = Math.random() * 1.5;
+    const dur = 2 + Math.random() * 2;
+    const size = 6 + Math.random() * 10;
+    piece.style.cssText = `left:${left}%;background:${color};width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+    container.appendChild(piece);
+  }
+}
+
+function goAgain() {
+  document.getElementById('winnerOverlay').classList.remove('show');
+  document.getElementById('confettiContainer').innerHTML = '';
+  document.getElementById('bottomBar').classList.add('hidden');
+  buildOptionsGrid();
+  document.getElementById('gameTitle').textContent = '🎲 SPINNING... 🎲';
+  document.getElementById('countdownFill').style.transition = 'none';
+  document.getElementById('countdownFill').style.width = '100%';
+  animationRunning = true;
+  setTimeout(runAnimation, 200);
+}
+
+function startOver() {
+  document.getElementById('winnerOverlay').classList.remove('show');
+  document.getElementById('confettiContainer').innerHTML = '';
+  document.getElementById('bottomBar').classList.add('hidden');
+  showScreen('setupScreen');
+  animationRunning = false;
+}
+
+// ──────────────────────────────────────────────
+//  GO!
+// ──────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
