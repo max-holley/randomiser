@@ -643,10 +643,18 @@ function buildEmojiPicker() {
 // ──────────────────────────────────────────────
 //  URL PERSISTENCE
 // ──────────────────────────────────────────────
+function encodeItems(data) {
+  // encodeURIComponent handles emoji & unicode before btoa
+  return btoa(encodeURIComponent(JSON.stringify(data)));
+}
+
+function decodeItems(str) {
+  return JSON.parse(decodeURIComponent(atob(str)));
+}
+
 function saveToURL() {
-  const encoded = btoa(JSON.stringify(items));
   const url = new URL(window.location.href);
-  url.searchParams.set('items', encoded);
+  url.searchParams.set('items', encodeItems(items));
   window.history.replaceState({}, '', url.toString());
 }
 
@@ -655,7 +663,7 @@ function loadFromURL() {
     const params = new URLSearchParams(window.location.search);
     const data = params.get('items');
     if (data) {
-      items = JSON.parse(atob(data));
+      items = decodeItems(data);
       renderItemsList();
       updateStartBtn();
     }
@@ -663,9 +671,8 @@ function loadFromURL() {
 }
 
 function getShareURL() {
-  const encoded = btoa(JSON.stringify(items));
   const url = new URL(window.location.href);
-  url.searchParams.set('items', encoded);
+  url.searchParams.set('items', encodeItems(items));
   return url.toString();
 }
 
